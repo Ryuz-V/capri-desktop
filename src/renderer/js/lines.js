@@ -76,8 +76,10 @@ export const LINES = {
       stillOpen: '{app} tourne encore : il se cache dans la zone de notification, ou il te demande d’enregistrer quelque chose.',
       force: 'Forcer la fermeture', leave: 'Laisser',
       forced: '{app} : coupé net.',
-      unkillable: '{app} résiste. Ferme-le toi-même depuis le Gestionnaire des tâches.',
+      unkillable: '{app} résiste. Ferme-le toi-même depuis le Moniteur système ou htop.',
       notFound: 'Je ne vois pas « {app} » ouvert sur ton PC.',
+      opened: '{app} : lancée ! C’est parti.',
+      cantOpen: 'Impossible de lancer « {app} ». Vérifie qu’elle est bien installée.',
     },
     // sa carte de rapport : ce que Claude a abattu aujourd'hui (son menu, ou d'elle-même le soir)
     report: {
@@ -238,8 +240,10 @@ export const LINES = {
       stillOpen: '{app} is still running: it hides in the tray, or it’s asking you to save something.',
       force: 'Force quit', leave: 'Leave it',
       forced: '{app}: cut off clean.',
-      unkillable: '{app} won’t go down. Close it yourself from Task Manager.',
+      unkillable: '{app} won’t go down. Close it yourself from System Monitor or htop.',
       notFound: 'I don’t see “{app}” open on your PC.',
+      opened: '{app}: fired up and running!',
+      cantOpen: 'Couldn’t launch “{app}”. Make sure it’s installed on your PC.',
     },
     // her report card: what Claude got through today (her menu, or on her own in the evening)
     report: {
@@ -399,8 +403,10 @@ export const LINES = {
       stillOpen: '{app} sigue abierta: se esconde en la bandeja, o te pide guardar algo.',
       force: 'Forzar cierre', leave: 'Dejarla',
       forced: '{app}: cortada en seco.',
-      unkillable: '{app} se resiste. Ciérrala tú desde el Administrador de tareas.',
+      unkillable: '{app} se resiste. Ciérrala tú desde el Monitor del sistema o htop.',
       notFound: 'No veo «{app}» abierta en tu PC.',
+      opened: '¡{app}: en marcha y lista!',
+      cantOpen: 'No pude abrir «{app}». Asegúrate de que esté instalada.',
     },
     // su informe: lo que Claude sacó hoy (su menú, o ella sola por la tarde)
     report: {
@@ -559,8 +565,10 @@ export const LINES = {
       stillOpen: '{app} continua rodando: ele se esconde na bandeja, ou está pedindo para você salvar algo.',
       force: 'Forçar fechamento', leave: 'Deixar',
       forced: '{app}: cortado na hora.',
-      unkillable: '{app} não cai. Feche você mesmo pelo Gerenciador de Tarefas.',
+      unkillable: '{app} não cai. Feche você mesmo pelo Monitor do Sistema ou htop.',
       notFound: 'Não vejo “{app}” aberto no seu PC.',
+      opened: '{app}: rodando e pronta!',
+      cantOpen: 'Não consegui abrir “{app}”. Verifique se está instalada.',
     },
     // o relatório dela: o que o Claude fez hoje (o menu dela, ou sozinha à noite)
     report: {
@@ -719,8 +727,10 @@ export const LINES = {
       stillOpen: '{app} всё ещё работает: прячется в трее или просит что-то сохранить.',
       force: 'Закрыть принудительно', leave: 'Оставить',
       forced: '{app}: отрублено.',
-      unkillable: '{app} не сдаётся. Закрой через Диспетчер задач.',
+      unkillable: '{app} не сдаётся. Закрой через Системный монитор или htop.',
       notFound: 'Не вижу «{app}» среди открытых на твоём ПК.',
+      opened: '{app}: запущена и готова!',
+      cantOpen: 'Не удалось запустить «{app}». Проверь, установлена ли она.',
     },
     // её отчёт: что Claude сделал за день (её меню, или сама вечером)
     report: {

@@ -355,9 +355,9 @@ tools/build-sprite.py    reconstruit le sprite depuis la découpe d'origine (Pyt
 tools/build-cutins.py    découpe les cut-ins et ses expressions dans des images de la série
 tools/build-intro.py     détoure les gros plans de son intro, tous de la même façon
 src/main/                Electron : fenêtre transparente plein écran, clic à travers, tray, bridge HTTP local
-  windows.js / .ps1      où sont les autres fenêtres (Windows), pour qu'elle s'assoie dessus
+  windows.js / windows-linux.js où sont les autres fenêtres sur Linux (Hyprland, Sway, X11/wmctrl), pour qu'elle s'assoie dessus
   ollama.js              son chat : le modèle local, via Ollama
-  apps.js                fermer une appli que tu lui demandes de fermer (après ton clic)
+  apps.js                fermer ou lancer une appli sur Linux (XDG, gtk-launch, wmctrl, pkill)
 src/renderer/js/
   sprite.js              shader WebGL : tête, crinière, position assise, smears, images rémanentes, couleurs, glitch
   acting.js              les feuilles d'exposition : chaque mouvement, dessin par dessin

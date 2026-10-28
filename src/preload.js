@@ -37,6 +37,7 @@ contextBridge.exposeInMainWorld('host', {
   openApps: () => ipcRenderer.invoke('apps:list'),
   findApp: (wanted) => ipcRenderer.invoke('apps:find', wanted),
   closeApp: (name, force) => ipcRenderer.invoke('apps:close', { name, force: Boolean(force) }),
+  launchApp: (name) => ipcRenderer.invoke('apps:open', { name }),
   focusOverlay: (on) => ipcRenderer.send('overlay:focus', Boolean(on)),
   captureScreen: (opts) => ipcRenderer.invoke('screen:capture', opts),
   onComment: on('capri:comment'),

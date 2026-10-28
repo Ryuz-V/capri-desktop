@@ -35,9 +35,9 @@ flowchart TB
     subgraph Main_Process ["Electron Main Process (src/main/)"]
         Bridge["bridge.js\n(HTTP Server 127.0.0.1:47823)"]
         MainCtrl["main.js\n(Window Manager, IPC, Tray, Shortcuts)"]
-        WinWatch["windows.js & windows.ps1\n(Win32 API Hook via PowerShell)"]
+        WinWatch["windows.js & windows-linux.js\n(Hyprland / Sway / X11 wmctrl)"]
         OllamaCtrl["ollama.js\n(Local LLM Bridge via REST)"]
-        AppCtrl["apps.js\n(Win32 Process Controller)"]
+        AppCtrl["apps.js\n(Linux XDG & Process Controller)"]
         ConfigMgr["config.js / labels.js\n(Persistensi Konfigurasi)"]
 
         Bridge -->|IPC: claude:event| MainCtrl
@@ -93,9 +93,9 @@ flowchart TB
 ### 3.2 Main Process (`src/main/`)
 * **`main.js`**: Mengelola jendela transparan *full-screen*, *frameless*, dan *always-on-top* dengan level `screen-saver`. Memiliki fitur *smart click-through* (`setIgnoreMouseEvents(true, { forward: true })`) sehingga pengguna tetap bisa mengklik aplikasi di bawahnya secara normal kecuali kursor menyentuh tubuh Capri atau panel UI.
 * **`bridge.js`**: Menjalankan server HTTP ringan di `127.0.0.1:47823`. Dilengkapi proteksi keamanan: menolak permintaan apapun yang memiliki header `Origin` (mencegah *cross-origin puppeting* dari situs web di peramban).
-* **`windows.js` & `windows.ps1`**: Menggunakan subprocess PowerShell berkecepatan tinggi yang mengakses fungsi *Win32 native* (`EnumWindows`, `GetForegroundWindow`, `DwmGetWindowAttribute`, `SetProcessDpiAwarenessContext`). Menghasilkan koordinat fisik dan status *DPI-aware* jendela aplikasi lain setiap 150 ms, memungkinkan Capri mendeteksi tepi atas jendela untuk tempat duduk.
+* **`windows.js` & `windows-linux.js`**: Menggunakan detektor jendela native Linux yang mendukung Hyprland (`hyprctl`), Sway (`swaymsg`), dan X11 (`wmctrl` & `xprop`). Menghasilkan koordinat jendela aplikasi aktif setiap 250 ms secara efisien tanpa memerlukan PowerShell.
 * **`ollama.js`**: Menjembatani komunikasi dengan model bahasa lokal melalui API Ollama. Menyediakan fitur *model warming* (`keep_alive: 15m`) agar respon awal tidak mengalami *cold-start delay*, serta mendukung *streaming response*.
-* **`apps.js`**: Fitur khusus Windows yang dapat mencari dan menutup aplikasi atas perintah pengguna saat berinteraksi di panel chat. Mengutamakan metode aman via `CloseMainWindow()` (memberi kesempatan aplikasi menyimpan data), dengan opsi *force quit* hanya jika pengguna mengonfirmasi kembali.
+* **`apps.js`**: Fitur pencarian, pembukaan, dan penutupan aplikasi berbasis standar Linux XDG Desktop (`/usr/share/applications`, `~/.local/share/applications`), `gtk-launch`, `wmctrl`, dan `pkill`.
 
 ### 3.3 Renderer Process & Grafis WebGL (`src/renderer/`)
 * **`sprite.js` (WebGL Custom Shader)**:
@@ -147,14 +147,14 @@ capri-desktop/
 │   └── install-hooks.js        # Utilitas instalasi hook Claude Code
 ├── src/
 │   ├── main/                   # Electron Main Process
-│   │   ├── apps.js             # Pengendali daftar & proses aplikasi Windows
+│   │   ├── apps.js             # Pengendali daftar, peluncuran, & proses aplikasi Linux
 │   │   ├── bridge.js           # Server HTTP lokal untuk menerima event
 │   │   ├── config.js           # Penyimpanan konfigurasi JSON lokal
 │   │   ├── labels.js           # Terjemahan tray menu (5 bahasa)
 │   │   ├── main.js             # Entry point Electron, lifecycle, & overlay window
 │   │   ├── ollama.js           # Integrasi API model AI lokal Ollama
-│   │   ├── windows.js          # Pengelola proses watcher jendela Windows
-│   │   └── windows.ps1         # Script Win32 P/Invoke PowerShell
+│   │   ├── windows.js          # Pengelola watcher jendela Linux
+│   │   └── windows-linux.js    # Tracker jendela native Linux (Hyprland, Sway, X11)
 │   ├── preload.js              # IPC Bridge (contextBridge)
 │   └── renderer/               # Electron Renderer Process (Frontend UI)
 │       ├── index.html          # Shell HTML untuk overlay dan canvas

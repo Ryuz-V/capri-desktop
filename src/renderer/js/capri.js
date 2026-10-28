@@ -1421,7 +1421,7 @@ export class Capri {
   // Her intro, when she starts: she grabs your screen by its edges, huge, says hi, then her hands
   // slip and she dives down to where she stands, and her body unfolds from her face (fx.intro).
   // `still`: no motion, it comes and goes where it is (Windows' animations off).
-  async intro(at, { label = 'Hi Chomp', caption = 'Ready to broke your computer?', still = reducedMotion.matches } = {}) {
+  async intro(at, { label = 'Hi Chomp', caption = 'Project Capricorn', still = reducedMotion.matches } = {}) {
     const p = this.p;
     this.pos = { ...at };
     this.faceCenter();

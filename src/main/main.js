@@ -92,7 +92,7 @@ function createOverlay() {
     focusable: false,
     hasShadow: false,
     alwaysOnTop: true,
-    type: process.platform === 'win32' ? 'toolbar' : undefined,
+    type: 'toolbar',
     show: false,
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload.js'),
@@ -154,19 +154,19 @@ function playDemo() {
   next();
 }
 
-// During the demo, a little fake terminal for her to sit on and take over (window tracking is
-// Windows only, so only there). Opened without stealing focus; closing it drops her off it.
+// During the demo, a little fake terminal for her to sit on and take over.
+// Opened without stealing focus; closing it drops her off it.
 let demoWin = null;
-const DEMO_TERMINAL = `<body style="margin:0;background:#14101c;color:#8f8aa3;font:13px/1.7 Consolas,monospace;padding:14px 18px">
-<div style="color:#36ff7a">PS C:\\night-city-api&gt; npm test -- gigs</div>
+const DEMO_TERMINAL = `<body style="margin:0;background:#14101c;color:#8f8aa3;font:13px/1.7 'JetBrains Mono',monospace;padding:14px 18px">
+<div style="color:#36ff7a">choom@archlinux:~/night-city-api$ npm test -- gigs</div>
 <div>&nbsp;&nbsp;GET /gigs</div><div style="color:#36ff7a">&nbsp;&nbsp;&nbsp;&nbsp;✓ returns 20 items per page</div>
 <div style="color:#36ff7a">&nbsp;&nbsp;&nbsp;&nbsp;✓ paginates with a cursor</div><div style="color:#36ff7a">&nbsp;&nbsp;&nbsp;&nbsp;✓ rejects a bad cursor</div>
-<div>&nbsp;&nbsp;6 passing (212ms)</div><div style="color:#36ff7a">PS C:\\night-city-api&gt; _</div></body>`;
+<div>&nbsp;&nbsp;6 passing (212ms)</div><div style="color:#36ff7a">choom@archlinux:~/night-city-api$ _</div></body>`;
 
 function demoWindow(open) {
   demoWin?.destroy();
   demoWin = null;
-  if (!open || process.platform !== 'win32') return false;
+  if (!open) return false;
   const b = overlay.getBounds();
   demoWin = new BrowserWindow({
     x: Math.round(b.x + b.width * 0.5 - 310), y: Math.round(b.y + b.height * 0.42), width: 620, height: 300,
@@ -435,6 +435,7 @@ function registerIpc() {
   ipcMain.handle('apps:list', async () => (await apps.list().catch(() => [])).map(appInfo));
   ipcMain.handle('apps:find', async (_e, wanted) => appInfo(await apps.find(wanted).catch(() => null)));
   ipcMain.handle('apps:close', (_e, { name, force }) => apps.close(name, { force }).catch((err) => ({ error: err.message })));
+  ipcMain.handle('apps:open', (_e, { name }) => apps.open(name).catch((err) => ({ error: err.message })));
   // typing to her: the overlay takes the keyboard while the chat is open, and gives it back after
   ipcMain.on('overlay:focus', (_e, on) => {
     if (!overlay) return;
@@ -560,7 +561,6 @@ function main() {
     return;
   }
   app.on('second-instance', () => sendCommand('status'));
-  if (process.platform === 'win32') app.setAppUserModelId('capri.desktop');
 
   app.whenReady().then(() => {
     serveProtocol();

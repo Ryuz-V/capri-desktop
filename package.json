@@ -12,7 +12,10 @@
     "demo": "node scripts/demo.js",
     "hooks:install": "node scripts/install-hooks.js",
     "hooks:uninstall": "node scripts/install-hooks.js --uninstall",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --linux",
+    "dist:pacman": "electron-builder --linux pacman",
+    "dist:appimage": "electron-builder --linux AppImage",
+    "dist:tar": "electron-builder --linux tar.gz"
   },
   "keywords": [
     "claude-code",
@@ -45,20 +48,16 @@
       "LICENSE"
     ],
     "asarUnpack": [
-      "hooks/**",
-      "src/main/windows.ps1"
+      "hooks/**"
     ],
-    "win": {
-      "target": "nsis",
-      "icon": "assets/icons/capri.ico"
-    },
-    "nsis": {
-      "oneClick": true,
-      "perMachine": false,
-      "runAfterFinish": true,
-      "createDesktopShortcut": true,
-      "shortcutName": "Capri",
-      "artifactName": "Capri-Setup-${version}.${ext}"
+    "linux": {
+      "target": [
+        "pacman",
+        "AppImage",
+        "tar.gz"
+      ],
+      "category": "Utility",
+      "icon": "assets/icons/capri.png"
     }
   }
 }

@@ -1,6 +1,6 @@
 // Talking to her: you type in her panel, and a local model (Ollama, from the main process) answers
 // as her, in writing. The replies are AI-generated, and the panel says so on every chat.
-// Ask her to close an app and she will (Windows): she spots it in what you wrote (or the model names
+// Ask her to close or open an app and she will (Linux): she spots it in what you wrote (or the model names
 // it with a tag in its answer), and immediately flatlines/closes it.
 
 import { pick, fmt } from './util.js';
@@ -12,6 +12,9 @@ const LOADING_AFTER_MS = 5000;
 const CLOSE_TAG = /\[\[\s*close\s*:?\s*([^\]]*)\]\]/i; // [[close: AM Music]] at the end of her answer
 // "close", "shut down", "ferme", "quitte", "cierra", "fecha", "закрой", "tutup"... in any of her languages
 const CLOSE_ASK = /\b(close|shut|quit|kill|exit|tutup|matiin|matikan|hentikan)|ferm|quitt|coupe|arr[êe]t|cierr|cerra|fech|закр|выключ/i;
+const OPEN_TAG = /\[\[\s*open\s*:?\s*([^\]]*)\]\]/i; // [[open: Spotify]] at the end of her answer
+// "open", "launch", "start", "run", "buka", "bukain", "jalankan", "nyalakan"... in any of her languages
+const OPEN_ASK = /\b(open|launch|start|run|buka(?:in)?|jalankan|nyalakan)\b|ouvr|lanc|d[ée]marr|abr|inici|откр|запуст/i;
 // Keywords asking her to inspect/look at the screen
 const SCREEN_ASK = /\b(lihat|liat|tengok|pandang|nengok|baca|cek|periksa|analisis|layar|monitor|tampilan|desktop|jendela|screen|display|monitor|look|see|watch|view|inspect|read|check|spot|glance|error|bug|crash|masalah|code|kode|terminal|console|ide|window)\b/i;
 
@@ -607,9 +610,12 @@ export class Chat {
     this.panel.stream(answer, { done: true });
     this.panel.setFace(mood(answer));
 
-    const wanted = this.askedToClose(text) || tagged(res.text);
-    if (wanted) {
-      this.offerClose(wanted, answer);
+    const wantedClose = this.askedToClose(text) || tagged(res.text);
+    const wantedOpen = !wantedClose ? (this.askedToOpen(text) || taggedOpen(res.text)) : null;
+    if (wantedClose) {
+      this.offerClose(wantedClose, answer);
+    } else if (wantedOpen) {
+      this.offerOpen(wantedOpen, answer);
     } else {
       this.panel.setActions([
         { id: 'speak_now', label: this.t.speak || '🎙️ Speak to me', primary: true },
@@ -723,8 +729,10 @@ export class Chat {
     this.panel.setFace(mood(answer));
     this.panel.setChatBusy(false);
     // what you asked for first (a small model doesn't always write its tag right), else its tag
-    const wanted = this.askedToClose(text) || tagged(res.text);
-    if (wanted) this.offerClose(wanted, answer);
+    const wantedClose = this.askedToClose(text) || tagged(res.text);
+    const wantedOpen = !wantedClose ? (this.askedToOpen(text) || taggedOpen(res.text)) : null;
+    if (wantedClose) this.offerClose(wantedClose, answer);
+    else if (wantedOpen) this.offerOpen(wantedOpen, answer);
     this.listApps(); // fresh for the next message
   }
 
@@ -743,6 +751,16 @@ export class Chat {
       }
     }
     return best?.app.name || null;
+  }
+
+  // "buka spotify dong" / "open notepad": extracts the app name from an open request.
+  askedToOpen(text) {
+    if (!OPEN_ASK.test(text)) return null;
+    const match = text.match(/(?:buka(?:in)?|jalankan|nyalakan|open|launch|start|run|ouvr(?:ir|e)?|d[ée]marr(?:er|e)?|abr(?:ir|e)?|inici(?:ar|a)?|откр(?:ой|ыть)?|запуст(?:и|ить)?)\s+(?:aplikasi\s+|app\s+)?([^,.?!]+)/i);
+    if (!match) return null;
+    let target = match[1].trim();
+    target = target.replace(/\b(dong|tolong|pls|please|ya|kan|deh|cepat|sekarang|now|for me|por\s+favor|s'il\s+te\s+pla[iî]t|пожалуйста)\b/gi, '').trim();
+    return target || null;
   }
 
   // She was asked to close an app: directly closes it without asking for confirmation.
@@ -805,17 +823,64 @@ export class Chat {
     this.listApps();
   }
 
-  // What she can do on the PC: close an app you ask her to (Windows), see screen when asked, and nothing else.
+  // She was asked to open an app: resolves and launches it.
+  async offerOpen(wanted, answer) {
+    await this.openApp(wanted, answer);
+  }
+
+  async openApp(wanted, answerPrefix = '') {
+    const { t, capri } = this;
+    this.panel.setActions([]);
+    capri.pulse();
+    this.voice.play('rise');
+
+    const res = await this.host.launchApp(wanted);
+    if (!this.open && !this.voiceMode) return;
+
+    let line;
+    if (res?.opened) {
+      line = fmt(t.opened, { app: res.app || wanted });
+      this.panel.setFace('grin');
+    } else {
+      line = fmt(t.cantOpen, { app: wanted });
+      this.panel.setFace('aside');
+    }
+
+    const fullText = answerPrefix ? `${answerPrefix}\n${line}` : line;
+    this.panel.stream(fullText, { done: true });
+    if (this.history.length && this.history[this.history.length - 1].role === 'assistant') {
+      this.history[this.history.length - 1].content = fullText;
+    } else {
+      this.history.push({ role: 'assistant', content: fullText });
+    }
+
+    if (this.voiceMode) {
+      this.panel.setActions([
+        { id: 'speak_now', label: this.t.speak || '🎙️ Speak to me', primary: true },
+        { id: 'stop_voice', label: this.t.stopVoice || '🛑 Stop listening', primary: false },
+      ], (actionId) => {
+        if (actionId === 'speak_now') this.resumeVoiceListening();
+        else if (actionId === 'stop_voice') this.stopVoiceMode();
+      });
+      clearTimeout(this.voiceLoopTimer);
+      this.voiceLoopTimer = setTimeout(() => {
+        if (this.voiceMode && !this.turn && !this.open) this.resumeVoiceListening();
+      }, 3500);
+    }
+    this.listApps();
+  }
+
+  // What she can do on the PC: close an app you ask her to (Linux), open an app when asked, see screen when asked, and nothing else.
   powers(withVision = false) {
     const cant = withVision
-      ? 'you can see the attached screenshot of the user\'s desktop screen right now because they asked you to inspect it. Answer their question directly about what you see in 1-2 punchy sentences as Capri. NEVER begin with "The image shows", "The image features", or describe the image generically. Speak directly to the user in character. You can\'t open apps or touch anything else on their PC: if asked, say plainly that you can\'t in character.'
+      ? 'you can see the attached screenshot of the user\'s desktop screen right now because they asked you to inspect it. Answer their question directly about what you see in 1-2 punchy sentences as Capri. NEVER begin with "The image shows", "The image features", or describe the image generically. Speak directly to the user in character. When asked to open an installed desktop application, respond naturally and end with [[open: NAME]]. You can\'t touch anything else on their PC: if asked, say plainly that you can\'t in character.'
       : (this.hasVisionModel
-        ? 'you can close an open app when asked, and you can see their screen if they ask you to look or check it (e.g. "lihat layarku", "what do you see on my screen"). You can\'t open apps or touch anything else on their PC (music, settings, files): if asked, say plainly that you can\'t, in character, and don\'t pretend to.'
-        : 'you can close an open app when asked. You can\'t see their screen with the current model (text-only) or touch anything else on their PC: if asked, say plainly that you can\'t, in character.');
+        ? 'you can close an open app when asked (ending with [[close: NAME]]), open an installed desktop application when asked (e.g. "buka notepad", "open spotify", ending with [[open: NAME]]), and you can see their screen if they ask you to look or check it (e.g. "lihat layarku", "what do you see on my screen"). You can\'t touch anything else on their PC (modifying files, system settings): if asked, say plainly that you can\'t, in character, and don\'t pretend to.'
+        : 'you can close an open app when asked (ending with [[close: NAME]]) and open an installed desktop application when asked (ending with [[open: NAME]]). You can\'t see their screen with the current model (text-only) or touch anything else on their PC: if asked, say plainly that you can\'t, in character.');
     if (!this.apps.length) return [cant];
     const open = this.apps.map(({ name, label }) => (label && label !== name ? `${name} (${label})` : name)).join(', ');
     return [
-      `You can close an app that's open on the user's PC, only when they ask you to. When they ask to close an app, say in a short, punchy sentence that you are closing/flatlining it right away (do not ask them to confirm or ask them to click anything, because it will be closed automatically), and end your answer with [[close: NAME]], NAME being the exact name from this list (the part before the parentheses). Apps open right now: ${open}.`,
+      `You can close an app that's open on the user's PC, only when they ask you to. When they ask to close an app, say in a short, punchy sentence that you are closing/flatlining it right away (do not ask them to confirm or ask them to click anything, because it will be closed automatically), and end your answer with [[close: NAME]], NAME being the exact name from this list (the part before the parentheses). Apps open right now: ${open}. When they ask you to open an app (e.g. "buka notepad", "open spotify", "jalankan chrome"), say in a short, punchy sentence that you are launching it, and end your answer with [[open: NAME]], NAME being the application name.`,
       withVision
         ? 'A screenshot of the user\'s desktop screen is attached because they asked you to inspect it. Answer their question directly about what you see on screen in 1-2 punchy sentences as Capri. NEVER start with "The image shows" or "The image features". Speak directly to the user in character.'
         : `Apart from that, ${cant}`,
@@ -861,6 +926,14 @@ function clean(text) {
 // The app named by her close tag: [[close: AM Music]], or a sloppier [[close]] AM Music.
 function tagged(text) {
   const tag = CLOSE_TAG.exec(text);
+  if (!tag) return null;
+  const name = tag[1].trim() || text.slice(tag.index + tag[0].length).split('\n')[0].replace(/^[\s:.]+|[\s.!]+$/g, '');
+  return name || null;
+}
+
+// The app named by her open tag: [[open: Spotify]], or a sloppier [[open]] Spotify.
+function taggedOpen(text) {
+  const tag = OPEN_TAG.exec(text);
   if (!tag) return null;
   const name = tag[1].trim() || text.slice(tag.index + tag[0].length).split('\n')[0].replace(/^[\s:.]+|[\s.!]+$/g, '');
   return name || null;
