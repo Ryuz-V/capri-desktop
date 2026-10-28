@@ -367,3 +367,6 @@ the show, a fan-made cut-out and fan art (her intro's close-ups); they are **not
 If a rights holder wants them removed, open an issue.
 
 Fonts: Chakra Petch and JetBrains Mono, under the SIL Open Font License, via Fontsource.
+
+> **Note:** This project is a modified version of the original project. Original Project From User @mochiiwuff (https://github.com/mochiiwuff)
+
